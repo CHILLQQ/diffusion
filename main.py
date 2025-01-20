@@ -4,11 +4,20 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 from sklearn.datasets import make_swiss_roll
 
-def sample_batch(batch_size, device='cpu'):
+def sample_batch_2(batch_size, device='cpu'):
     data, _ = make_swiss_roll(batch_size)
     data = data[:, [2, 0]] / 10
     data = data * np.array([1, -1])
     return torch.from_numpy(data).to(device)
+
+def sample_batch(batch_size: int = 200, device: str = "cpu"):
+    x1 = torch.rand(batch_size, device=device) * 4 - 2
+    x2_ = torch.rand(batch_size, device=device) - torch.randint(high=2, size=(batch_size, ), device=device) * 2
+    x2 = x2_ + (torch.floor(x1) % 2)
+
+    data = 1.0 * torch.cat([x1[:, None], x2[:, None]], dim=1) / 0.45
+    
+    return data.float()
 
 
 class MLP(nn.Module):
@@ -125,7 +134,7 @@ def plot(model, file_name, device):
     fontsize = 14
     fig = plt.figure(figsize=(10, 6))
 
-    N = 5_000
+    N = 10_000
     x0 = sample_batch(N).to(device)
     samples = model.sample(N, device=device)
 
@@ -134,8 +143,8 @@ def plot(model, file_name, device):
 
         plt.subplot(2, 3, 1+i)
         plt.scatter(data[i][:, 0].data.numpy(), data[i][:, 1].data.numpy(), alpha=0.1, s=1)
-        plt.xlim([-2, 2])
-        plt.ylim([-2, 2])
+        #plt.xlim([-2, 2])
+        #plt.ylim([-2, 2])
         plt.gca().set_aspect('equal')
 
         if i == 0: plt.ylabel(r'$q(\mathbf{x}^{(0..T)})$', fontsize=fontsize)
@@ -149,8 +158,8 @@ def plot(model, file_name, device):
         plt.subplot(2, 3, 4+i)
         plt.scatter(samples[time_steps[i]][:, 0].data.cpu().numpy(), samples[time_steps[i]][:, 1].data.cpu().numpy(), 
                     alpha=0.1, c='r', s=1)
-        plt.xlim([-2, 2])
-        plt.ylim([-2, 2])
+        #plt.xlim([-2, 2])
+        #plt.ylim([-2, 2])
         plt.gca().set_aspect('equal')
 
         if i == 0: plt.ylabel(r'$p(\mathbf{x}^{(0..T)})$', fontsize=fontsize)
@@ -175,10 +184,10 @@ def train(diffusion_model, optimizer, batch_size, nb_epochs, device):
         
         if epoch % 5000 == 0:
             plt.plot(training_loss)
-            plt.savefig(f'figs/training_loss_epoch_{epoch}.png')
+            plt.savefig(f'figs_chess/training_loss_epoch_{epoch}.png')
             plt.close()
             
-            plot(diffusion_model, f'figs/training_epoch_{epoch}.png', device)
+            plot(diffusion_model, f'figs_chess/training_epoch_{epoch}.png', device)
         
     return training_loss
 
@@ -188,3 +197,4 @@ model = DiffusionModel(40, mlp_model, device)
 optimizer = torch.optim.Adam(mlp_model.parameters(), lr=1e-4)
 
 train(model, optimizer, 64_000, 300_000, device)
+torch.save(model.state_dict(), "model_chess.pth")

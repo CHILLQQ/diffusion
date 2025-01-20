@@ -2,7 +2,7 @@
 #SBATCH -n 1
 #SBATCH -p preempt
 #SBATCH --gres=gpu:a100:1
-#SBATCH -t 02:00:00
+#SBATCH -t 04:00:00
 ##SBATCH --gres=gpu:1
 #SBATCH --mem=16g
 #SBATCH -o dump/log_%j.out # Write stdout to file named log_JOBIDNUM.out in log dir
