@@ -36,6 +36,7 @@ class MLP(nn.Module):
         return mu, std
 
     
+class DiffusionModel():
     def __init__(self, T, model: nn.Module, device, dim=2):
         
         self.betas = (torch.sigmoid(torch.linspace(-18, 10, T)) * (3e-1 - 1e-5) + 1e-5).to(device)
@@ -119,10 +120,50 @@ class MLP(nn.Module):
         return loss
 
 
+def plot(model, file_name, device):
+
+    fontsize = 14
+    fig = plt.figure(figsize=(10, 6))
+
+    N = 5_000
+    x0 = sample_batch(N).to(device)
+    samples = model.sample(N, device=device)
+
+    data = [x0.cpu(), model.forward_process(x0, 20)[-1].cpu(), model.forward_process(x0, 40)[-1].cpu()]
+    for i in range(3):
+
+        plt.subplot(2, 3, 1+i)
+        plt.scatter(data[i][:, 0].data.numpy(), data[i][:, 1].data.numpy(), alpha=0.1, s=1)
+        plt.xlim([-2, 2])
+        plt.ylim([-2, 2])
+        plt.gca().set_aspect('equal')
+
+        if i == 0: plt.ylabel(r'$q(\mathbf{x}^{(0..T)})$', fontsize=fontsize)
+        if i == 0: plt.title(r'$t=0$', fontsize=fontsize)
+        if i == 1: plt.title(r'$t=\frac{T}{2}$', fontsize=fontsize)
+        if i == 2: plt.title(r'$t=T$', fontsize=fontsize)
+
+    time_steps = [0, 20, 40]
+    for i in range(3):
+
+        plt.subplot(2, 3, 4+i)
+        plt.scatter(samples[time_steps[i]][:, 0].data.cpu().numpy(), samples[time_steps[i]][:, 1].data.cpu().numpy(), 
+                    alpha=0.1, c='r', s=1)
+        plt.xlim([-2, 2])
+        plt.ylim([-2, 2])
+        plt.gca().set_aspect('equal')
+
+        if i == 0: plt.ylabel(r'$p(\mathbf{x}^{(0..T)})$', fontsize=fontsize)
+
+    plt.savefig(file_name, bbox_inches='tight')
+    plt.close()
+
+
 def train(diffusion_model, optimizer, batch_size, nb_epochs, device):
     
     training_loss = []
-    for epoch in tqdm(range(nb_epochs)):
+    #for epoch in tqdm(range(nb_epochs)):
+    for epoch in range(nb_epochs):
         x0 = sample_batch(batch_size).to(device)
         loss = diffusion_model.get_loss(x0)
 
